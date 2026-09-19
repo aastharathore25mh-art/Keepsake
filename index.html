@@ -177,6 +177,19 @@
   .kpi-grid{display:flex; gap:14px; flex-wrap:wrap; margin:28px 0 32px;}
   .dashboard-card{padding:22px; border-radius:16px; border:1px solid var(--line); background:#fff; margin-bottom:20px;}
 
+  /* ---------- Signup forms ---------- */
+  .signup-section{max-width:420px; margin:0 auto; padding:0 24px 90px; text-align:center;}
+  .signup-form{display:flex; flex-direction:column; gap:12px; text-align:left;}
+  .signup-form input, .signup-form textarea{
+    padding:12px 14px; border-radius:10px; border:1px solid var(--line);
+    font-family:inherit; font-size:14px; background:#fff; color:var(--ink); width:100%;
+  }
+  .signup-form input:focus, .signup-form textarea:focus{outline:none; border-color:var(--plum);}
+  .signup-form textarea{resize:vertical; min-height:80px;}
+  .form-message{font-size:12.5px; min-height:18px; margin-top:2px;}
+  .form-message.success{color:#3D6B4A;}
+  .form-message.error{color:#B8546B;}
+
   .toast{
     position:fixed; left:50%; bottom:28px; transform:translate(-50%, 12px); background:var(--ink);
     color:#fff; padding:12px 20px; border-radius:999px; font-size:13px; font-weight:600;
@@ -250,6 +263,21 @@
     <p>Open the app, pick a brand, and see what it feels like to actually collect a try-on instead of forgetting it.</p>
     <a href="#app" class="btn-primary">Launch the app</a>
   </div>
+
+  <div class="signup-section">
+    <div class="eyebrow" style="margin-bottom:8px;">Get early access</div>
+    <h2 style="font-size:26px; margin-bottom:8px;">Join the Keepsake waitlist</h2>
+    <p style="color:var(--ink-soft); font-size:13.5px; margin:0 0 22px; line-height:1.6;">
+      Be first to know when Keepsake launches with your favorite brands.
+    </p>
+    <form class="signup-form" id="customer-form" onsubmit="return handleSignup(event, 'customer-form', 'customer')">
+      <input type="hidden" name="audience" value="customer">
+      <input type="text" name="name" placeholder="Your name" required>
+      <input type="email" name="email" placeholder="Email address" required>
+      <button type="submit" class="btn-primary" style="justify-content:center;">Join the waitlist</button>
+      <div class="form-message" id="customer-form-message"></div>
+    </form>
+  </div>
 </section>
 
 <!-- ============ APP ============ -->
@@ -282,8 +310,22 @@
       <div style="font-weight:700; font-size:14.5px; margin-bottom:16px;">Before vs. with Keepsake</div>
       <div id="bars-container"></div>
     </div>
-    <div style="font-size:12px; color:var(--ink-soft); line-height:1.6;">
+    <div style="font-size:12px; color:var(--ink-soft); line-height:1.6; margin-bottom:32px;">
       Your AR experience stays on your own technology — Keepsake only adds discovery, cross-brand reach, and a collectible layer on top.
+    </div>
+
+    <div class="dashboard-card">
+      <div style="font-weight:700; font-size:14.5px; margin-bottom:4px;">Want this for your brand?</div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin-bottom:16px;">Tell us about your brand and we'll reach out about a pilot.</div>
+      <form class="signup-form" id="brand-form" onsubmit="return handleSignup(event, 'brand-form', 'brand')">
+        <input type="hidden" name="audience" value="brand">
+        <input type="text" name="brand_name" placeholder="Brand name" required>
+        <input type="email" name="email" placeholder="Work email" required>
+        <input type="text" name="website" placeholder="Website (optional)">
+        <textarea name="message" placeholder="What would you want customers to try on?"></textarea>
+        <button type="submit" class="primary-btn">Request a pilot</button>
+        <div class="form-message" id="brand-form-message"></div>
+      </form>
     </div>
   </div>
 </section>
@@ -496,6 +538,52 @@ function renderApp(){
   else if(screen === "collection") html = screenCollection();
   else if(screen === "share") html = screenShare();
   container.innerHTML = `<div class="screen-fade">${html}</div>`;
+}
+
+/* ---------------- Signup forms (Formspree) ---------------- */
+// 1. Create a free form at https://formspree.io
+// 2. Copy the endpoint it gives you (looks like https://formspree.io/f/abcd1234)
+// 3. Paste it below, replacing the placeholder. Both forms share one endpoint —
+//    each submission is tagged with a hidden "audience" field ("customer" or "brand")
+//    so you can tell them apart in your Formspree inbox.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xoevjqqo";
+
+async function handleSignup(event, formId, audience){
+  event.preventDefault();
+  const form = document.getElementById(formId);
+  const msgEl = document.getElementById(formId + "-message");
+  const submitBtn = form.querySelector("button[type=submit]");
+
+  if(FORMSPREE_ENDPOINT.includes("YOUR_FORM_ID")){
+    msgEl.textContent = "Signups aren't connected yet — add your Formspree endpoint in the code.";
+    msgEl.className = "form-message error";
+    return false;
+  }
+
+  submitBtn.disabled = true;
+  msgEl.textContent = "Sending…";
+  msgEl.className = "form-message";
+
+  try{
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      body: new FormData(form),
+      headers: { "Accept": "application/json" },
+    });
+    if(res.ok){
+      msgEl.textContent = audience === "brand" ? "Thanks — we'll be in touch." : "You're on the list!";
+      msgEl.className = "form-message success";
+      form.reset();
+    } else {
+      msgEl.textContent = "Something went wrong. Please try again.";
+      msgEl.className = "form-message error";
+    }
+  } catch(e){
+    msgEl.textContent = "Something went wrong. Please try again.";
+    msgEl.className = "form-message error";
+  }
+  submitBtn.disabled = false;
+  return false;
 }
 
 /* ---------------- Functional share / copy ---------------- */
